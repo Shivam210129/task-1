@@ -1,1 +1,148 @@
 
+// const http = require('http');
+// const  server=http.createServer((req,res)=>{
+//     const url=req.url;
+//     const method=req.method;
+//     if(req.url==='/'){
+//         res.setHeader('Content-Type', 'text/html');
+//         res.end(
+//             `
+//             <form action="/message" method="POST">
+//                 <label> name:</label>
+//                 <input type='text' name="username"></input>
+//                 <button type='submit'> Add</button>
+//             </form> 
+//             `
+            
+            
+            
+            
+            
+//         )
+
+//     }
+//     else {
+//     if(req.url === '/message') {
+
+//         let dataChunks = [];
+
+//         req.on('data', (chunks) => {
+//             console.log(chunks);
+//             dataChunks.push(chunks);
+//         });
+
+//         req.on('end', () => {
+
+//             let combinedBuffer = Buffer.concat(dataChunks);
+
+//             console.log(combinedBuffer.toString());
+
+//             let value = combinedBuffer.toString().split('=');
+
+//             console.log(value);
+
+            
+//         });
+//     }
+// }
+// })
+// server.listen(231,()=>{
+//     console.log('server is listening on port 231');
+// })
+
+
+
+
+const http = require('http');
+const fs = require('fs');
+
+const server = http.createServer((req, res) => {
+
+    // HOME PAGE
+    if (req.url === '/' && req.method === 'GET') {
+
+        fs.readFile('message.txt', 'utf8', (err, data) => {
+
+            let messages = '';
+
+            if (!err && data) {
+
+                const allMessages = data.split('\n');
+
+                messages = allMessages
+                    .filter(msg => msg.trim() !== '')
+                    .reverse()
+                    .map(msg => `<li>${msg}</li>`)
+                    .join('');
+            }
+
+            res.setHeader('Content-Type', 'text/html');
+
+            res.end(`
+                <html>
+                    <head>
+                        <title>Messages</title>
+                    </head>
+
+                    <body>
+
+                        <h2>Messages</h2>
+
+                        <ul>
+                            ${messages}
+                        </ul>
+
+                        <form action="/message" method="POST">
+
+                            <label>Name:</label>
+
+                            <input type="text" name="username">
+
+                            <button type="submit">Add</button>
+
+                        </form>
+
+                    </body>
+                </html>
+            `);
+        });
+    }
+
+    // HANDLE FORM SUBMISSION
+    else if (req.url === '/message' && req.method === 'POST') {
+
+        let dataChunks = [];
+
+        req.on('data', (chunk) => {
+            dataChunks.push(chunk);
+        });
+
+        req.on('end', () => {
+
+            const combinedBuffer = Buffer.concat(dataChunks);
+
+            const parsedData = combinedBuffer.toString();
+
+            const message = parsedData.split('=')[1];
+
+            // Append message to file
+            fs.appendFile('message.txt', message + '\n', (err) => {
+
+                // Redirect to home page
+                res.statusCode = 302;
+                res.setHeader('Location', '/');
+
+                res.end();
+            });
+        });
+    }
+
+    else {
+        res.statusCode = 404;
+        res.end('Page Not Found');
+    }
+});
+
+server.listen(231, () => {
+    console.log('Server is listening on port 231');
+});
